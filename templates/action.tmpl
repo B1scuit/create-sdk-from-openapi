@@ -1,0 +1,93 @@
+// Code generated DO NOT EDIT
+
+package {{.Package}}
+
+import (
+	"context"
+	"encoding/json"
+	"log"
+	"net/http"
+	"path"
+    "time"
+)
+
+func new{{.Name}}Func(opts *types.ClientOptions) {{.Name}} {
+    return func(o ...func(*{{.Name}}Options)) (*{{.ReturnType}}, error) {
+        r := {{.Name}}Options{}
+
+        for _, v := range o {
+            v(&r)
+        }
+
+        return r.Do(r.ctx, opts)
+    }
+}
+
+type {{.Name}} func(...func(*{{.Name}}Options)) (*{{.ReturnType}}, error) 
+
+type {{.Name}}Options struct {
+    ctx context.Context
+
+{{- range .Query }}
+    {{ .Name | camelcase}} {{ .BaseType | typeDetermine }} // {{ .Description }}
+{{- end}}
+}
+
+func (c *{{.Name}}Options) Do(ctx context.Context, opts *types.ClientOptions)(*{{.ReturnType}}, error) {
+
+	u := opts.BaseURL
+	u.Path = path.Join(u.Path, "{{.Endpoint}}")
+
+	q := u.Query()
+    // parans here
+
+	u.RawQuery = q.Encode()
+	request, err := http.NewRequestWithContext(ctx, http.Method{{.Method}}, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := opts.AuthHeaders(&request.Header); err != nil {
+		// As projects can operate without authentication, only warn
+		// whebn auth is missing
+		opts.ErrLog.Println(err)
+	}
+
+	response, err := opts.HttpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.ErrNoAuthentication
+	}
+
+	defer response.Body.Close()
+
+	responseData := &{{.ReturnType}}{}
+	if err := json.NewDecoder(response.Body).Decode(responseData); err != nil {
+		return nil, err
+	}
+
+	log.Println("Request succeeded")
+
+	return responseData, nil
+}
+
+func (lo *{{.Name}}) SetContext(ctx context.Context) func(*{{.Name}}Options) {
+	return func(lo *{{.Name}}Options) {
+		lo.ctx = ctx
+	}
+}
+
+{{- range .Query }}
+
+// Set{{.Name | camelcase}}
+// required: {{ .Required }}
+// {{ .Description }}
+func (lo *{{$.Name}}) Set{{.Name | camelcase}}(in {{.BaseType | typeDetermine}}) func(*{{$.Name}}Options) {
+	return func(lo *{{$.Name}}Options) {
+		lo.{{.Name | camelcase}} = in
+	}
+}
+{{- end}}

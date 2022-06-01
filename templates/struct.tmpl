@@ -1,0 +1,16 @@
+// Code generated DO NOT EDIT
+package {{.Package}}
+
+{{- if .Imports}}
+import (
+{{- range .Imports}}
+    "{{.}}"
+{{- end}}
+)
+{{- end }}
+
+type {{.Name}} struct {
+{{- range .Fields}}
+    {{.Name | camelcase}} {{.Type}} `json:"{{.Name }},omitempty"`
+{{- end}}
+}

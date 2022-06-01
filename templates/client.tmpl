@@ -1,0 +1,46 @@
+// Code generated DO NOT EDIT
+
+package {{.Package}}
+
+import (
+	"net/http"
+	"net/url"
+	"time"
+)
+
+type HttpClientInterface interface{
+	Do(*http.Request) (*http.Response, error)
+}
+
+type {{.Name}}Options struct {
+	HttpClient HttpClientInterface
+	BaseURL *url.URL
+}
+
+type {{.Name}} struct {
+{{- range .Actions}}
+    {{.}} {{.}}
+{{- end}}
+}
+
+func New{{.Name}}(opts *{{.Name}}Options) *{{.Name}} {
+
+	if opts.BaseURL == nil {
+		u, err := url.Parse("{{.Server}}")
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	if opts.HttpClient == nil {
+		opts.HttpClient = &http.Client{
+			Timeout: time.Second * 10,
+		}
+	}
+
+	return &{{.Name}}{
+{{- range .Actions}}
+		{{.}}: new{{.}}Func(opts),
+{{- end}}
+	}
+}
